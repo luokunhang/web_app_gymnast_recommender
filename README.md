@@ -10,6 +10,26 @@
 * [Mypy](#Mypy)
 * [Pylint](#Pylint)
 
+## Project Charter
+##### Vision
+In gymnastics, all around competitions are the highest honors for both individuals and teams. Men and women compete over multiple events to be ranked of the sum of the scores.
+
+However, each has stronger and weaker events. In the context of team all around competitions, coaches pick a team of gymnasts with different strength for the highest scores possible. Another scenario could be that alternates are chosen in case of any injuries before the team competition.
+
+Moreover, fans can use a fantasy sport simulator to analyze gymnasts as well.
+
+
+##### Mission
+Behind this application is a clustering model that assigns gymnasts to a group. The user will choose a gymnast from a drop-down menu or input the strength and weakness of an imaginary athlete. The application will output one or more gymnast(s) similar or dissimilar to the input.
+
+The data are from the all around final results at the Tokyo Olympic Games from Wikipedia.\
+Men: https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Men%27s_artistic_individual_all-around \
+Women: https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around
+
+##### Success Criteria
+The modeling metric for this unsupervised clustering model is mainly the F-score of the clusters. Also, the pseudo R-squared should be at least 0.5.
+
+Because the site is for coaches and fans, and the business goal is to help professional find better strategies and entertain the fans, the number of visits and the probability of revisiting the application should be measured to determine the traffic and health of the application.
 
 
 ## Directory structure 
