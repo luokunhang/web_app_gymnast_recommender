@@ -16,11 +16,11 @@ In gymnastics, all around competitions are the highest honors for both individua
 
 However, each has stronger and weaker events. In the context of team all around competitions, coaches pick a team of gymnasts with different strength for the highest scores possible. Another scenario could be that alternates are chosen in case of any injuries before the team competition.
 
-Moreover, fans can use a fantasy sport simulator to analyze gymnasts as well.
+Moreover, fans can use a fantasy sport simulator to analyze gymnasts.
 
 
 ##### Mission
-Behind this application is a clustering model that assigns gymnasts to a group. The user will choose a gymnast from a drop-down menu or input the strength and weakness of an imaginary athlete. The application will output one or more gymnast(s) similar or dissimilar to the input.
+Behind this application is a clustering model that assigns gymnasts to a group. The user will choose a gymnast from a drop-down menu or input the projected scores of an imaginary athlete. The application will output one or more gymnast(s) similar or dissimilar to the input from the same cluster or the most dissimilar cluster.
 
 The data are from the all around final results at the Tokyo Olympic Games from Wikipedia.\
 Men: https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Men%27s_artistic_individual_all-around \
