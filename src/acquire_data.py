@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 import re
 import boto3
 
+from src import util
+
 
 def scraping(url: str, columns: list[str], output_file: str) -> bool:
     response = requests.get(url)
@@ -23,10 +25,18 @@ def scraping(url: str, columns: list[str], output_file: str) -> bool:
     df.to_csv(output_file, index=False)
     return True
 
-def upload_to_s3(filename:str, output_path) -> bool:
-    s3 = boto3.resource("s3")
-    bucket = s3.Bucket("2022-msia423-luo-kunhang")
-    bucket.upload_file(filename, output_path)
+
+# def upload_to_s3(filename: str, output_path: str) -> None:
+#     s3 = boto3.resource("s3")
+#     bucket = s3.Bucket("2022-msia423-luo-kunhang")
+#     bucket.upload_file(filename, output_path)
+#
+#
+# def retrieve_from_s3(s3_file_location: str, local_file_location: str) -> None:
+#     s3 = boto3.resource("s3")
+#     bucket = s3.Bucket("2022-msia423-luo-kunhang")
+#     bucket.download_file(s3_file_location, local_file_location)
+
 
 if __name__ == "__main__":
     scraping("https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around",
@@ -36,8 +46,8 @@ if __name__ == "__main__":
              ["Rank", "Gymnast", "Floor Exercise", "Horse", "Rings", "Vault", "Parallel Bars", "Horizontal Bar", "Total"],
              "../data/external/men_final_results.csv")
 
-    upload_to_s3("../data/external/women_final_results.csv",
+    util.upload_to_s3("../data/external/women_final_results.csv",
                  "avc-project-data/women_final_results.csv")
 
-    upload_to_s3("../data/external/men_final_results.csv",
+    util.upload_to_s3("../data/external/men_final_results.csv",
                  "avc-project-data/men_final_results.csv")

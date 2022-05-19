@@ -9,6 +9,11 @@ from src.add_songs import create_db, add_song
 logging.config.fileConfig('config/logging/local.conf')
 logger = logging.getLogger('penny-lane-pipeline')
 
+# my code
+
+
+from src import util, acquire_data, populate_database
+
 if __name__ == '__main__':
 
     # Add parsers for both creating a database and adding songs to it
@@ -43,3 +48,34 @@ if __name__ == '__main__':
         add_song(args)
     else:
         parser.print_help()
+
+    # data acquisition: from wiki page to s3
+    acquire_data.scraping("https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around",
+                          ["Rank", "Gymnast", "Vault", "Uneven Bars", "Balance Beam", "Floor Exercise", "Total"],
+                          "../data/external/women_final_results.csv")
+    acquire_data.scraping("https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Men%27s_artistic_individual_all-around",
+                          ["Rank", "Gymnast", "Floor Exercise", "Horse", "Rings", "Vault", "Parallel Bars", "Horizontal Bar", "Total"],
+                          "../data/external/men_final_results.csv")
+    util.upload_to_s3("../data/external/women_final_results.csv",
+                              "avc-project-data/women_final_results.csv")
+    util.upload_to_s3("../data/external/men_final_results.csv",
+                              "avc-project-data/men_final_results.csv")
+
+    # data acquisition: from s3 to RDS
+
+    # create db
+    populate_database.create_db(util.engine_string)
+
+    # populate tables
+    ## getting data in the local folder data/
+    acquire_data.retrieve_from_s3("avc-project-data/women_final_results.csv",
+                                  "data/external/women_final_results.csv")
+    acquire_data.retrieve_from_s3("avc-project-data/men_final_results.csv",
+                                  "data/external/men_final_results.csv")
+
+    ## moving the data to RDS
+    populate_database.add_results_women(util.engine_string, "data/external/women_final_results.csv")
+    populate_database.add_results_men(util.engine_string, "data/external/men_final_results.csv")
+
+
+
