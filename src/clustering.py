@@ -1,53 +1,56 @@
 import json
+import pickle
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import numpy as np
-
-from src import util
-
-from sklearn.base import BaseEstimator
+from typing import Tuple
 import pandas as pd
+from sklearn.metrics import calinski_harabasz_score
 
 
-def create_model_women(filename: str) -> None:
-    df = pd.read_csv(filename)
-    df = pre_processing_women(df)
-    filename = 'data/external/women_gym_model.sav'
-    util.save_model(training(df), filename)
-    util.upload_to_s3(filename, f"avc-project-data/{filename}")
-
-
-def pre_processing_women(df: pd.DataFrame) -> pd.DataFrame:
+def pre_processing(config: dict) -> Tuple[pd.DataFrame, list[str]]:
+    df = pd.read_csv(config['filepath']['data'])
     # standardizing columns
-    for i in ['Vault', 'Uneven Bars', 'Balance Beam', 'Floor Exercise']:
-        df[i] = (df[i] - df[i].mean()) / df[i].std()
+    avg_sd_dict = dict()
+    columns = config['clustering']['features']
+    for i in columns:
+        avg = df[i].mean()
+        sd = df[i].std()
+        avg_sd_dict[i + '_avg'] = avg
+        avg_sd_dict[i + '_sd'] = sd
+        df[i + '_std'] = (df[i] - avg) / sd
+
+    with open(config['filepath']['avg_sd'], "w+") as file:
+        json.dump(avg_sd_dict, file)
+
+    std_columns = [i + '_std' for i in columns]
 
     # centering at mean for rows
-    df['mean'] = df[['Vault', 'Uneven Bars', 'Balance Beam', 'Floor Exercise']].mean(axis=1)
-    df['vault'] = df['Vault'] - df['mean']
-    df['bars'] = df['Uneven Bars'] - df['mean']
-    df['beam'] = df['Balance Beam'] - df['mean']
-    df['floor'] = df['Floor Exercise'] - df['mean']
-
-    return df
+    df['mean'] = df[std_columns].mean(axis=1)
+    for i in std_columns:
+        df[i] = df[i] - df['mean']
+    return df, std_columns
 
 
-def training(df: pd.DataFrame) -> BaseEstimator:
-    dimensions = ['vault', 'bars', 'beam', 'floor']
-    kmeans = KMeans(n_clusters=6, random_state=42).fit(df[dimensions])
-    gymnast_labels = pd.DataFrame(df['Gymnast'], kmeans.labels)
-    save_labels_women(kmeans, df['Gymnast'])
-    return kmeans
+def try_models(df: pd.DataFrame,
+               std_columns: list[str],
+               config: dict) -> None:
+    min_clusters = config['clustering']['try_models']['min_clusters']
+    max_clusters = config['clustering']['try_models']['max_clusters']
+    random_state = config['clustering']['random_state']
+    with open(config['filepath']['model_diagnostics'], 'w+') as file:
+        for i in range(min_clusters, max_clusters+1):
+            kmeans = KMeans(n_clusters=i, random_state=random_state).fit(df[std_columns])
+            pseudo_f = calinski_harabasz_score(df[std_columns], kmeans.labels_)
+            # add pseudo R2
+            file.write(f'{i} cluster(s), pseudo F score: {pseudo_f}.\n')
 
 
-def save_labels_women(kmeans: BaseEstimator, df: pd.DataFrame) -> None:
-    labels_dict = {}
-    for i in range(df.shape[0]):
-        labels_dict[df.loc[i, 'Gymnast']] = str(kmeans.labels_[i])
-
-    with open("data/external/labels_women.json", "w") as f:
-        json.dump(labels_dict, f)
-
-    # save it to s3
-    util.upload_to_s3("data/external/labels_women.json", "avc-project-data/labels_women.json")
-
+def get_model(df: pd.DataFrame,
+              std_columns: list[str],
+              config: dict) -> None:
+    n_clusters = config['clustering']['final_model']['n_clusters']
+    random_state = config['clustering']['random_state']
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state).fit(df[std_columns])
+    df['label'] = kmeans.labels_
+    df.to_csv(config['filepath']['labeled_data'], index=False)
+    with open(config['filepath']['model'], "wb") as f:
+        pickle.dump(kmeans, f)

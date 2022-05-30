@@ -23,8 +23,7 @@ Moreover, fans can use a fantasy sport simulator to analyze gymnasts.
 Behind this application is a clustering model that assigns gymnasts to a group. The user will choose a gymnast from a drop-down menu or input the projected scores of an imaginary athlete. The application will output one or more gymnast(s) similar or dissimilar to the input from the same cluster or the most dissimilar cluster.
 
 The data are from the all around final results at the Tokyo Olympic Games from Wikipedia.\
-Men: https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Men%27s_artistic_individual_all-around \
-Women: https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around
+https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around
 
 ##### Success Criteria
 The modeling metric for this unsupervised clustering model is mainly the F-score of the clusters. Also, the pseudo R-squared should be at least 0.5.
@@ -80,6 +79,11 @@ Because the site is for coaches and fans, and the business goal is to help profe
 ```
 
 ## Running the app 
+```bash
+docker build -f dockerfiles/Dockerfile.run -t data_model .
+docker run --env-file ~/aws/.profile data_model
+```
+
 
 ### 1. Initialize the database 
 #### Build the image 

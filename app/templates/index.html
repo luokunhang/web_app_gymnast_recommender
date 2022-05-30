@@ -6,38 +6,78 @@
 </head>
 
 <body>
-    <h3>
-         <a href = "{{ url_for('index') }}">Penny Lane Music Recommender</a>
-    </h3>
+<h1>
+    <a href="{{ url_for('index') }}">Gymnast Matching Recommender</a>
+</h1>
 
-    <hr/>
-    <table>
-         <thead>
-            <tr>
-               <th>Title</th>
-               <th>Artist</th>
-               <th>Album</th>
-            </tr>
-         </thead>
-
-         <tbody>
-            {% for track in tracks %}
-               <tr>
-                   <td>{{ track.title }}</td>
-                   <td>{{ track.artist }}</td>
-                   <td>{{ track.album }}</td>
-               </tr>
-            {% endfor %}
-         </tbody>
-      </table>
-      <form action="{{ url_for('add_entry') }}" method=post class=add-entry>
-      <dl>
-        <input type=text size=15 name=title placeholder="Title">
-        <input type=text size=15 name=artist placeholder="Artist">
-        <input type=text size=15 name=album placeholder="Album">
-        <input type=submit value=Add>
-      </dl>
-    </form>
+<hr/>
+<table>
+    <thead>
+    <tr>
+        <th>Gymnast</th>
+        <th>Vault</th>
+        <th>Bars</th>
+        <th>Beam</th>
+        <th>Floor</th>
+        <th>Similar Gymnast</th>
+        <th>Different Gymnast</th>
+    </tr>
+    </thead>
+    <h3>Recent gymnast matches found by this app</h3>
+    <tbody>
+    {% for matching in matchings %}
+    <tr>
+        <td>{{ matching.gymnast }}</td>
+        <td>{{ matching.vault }}</td>
+        <td>{{ matching.uneven_bars }}</td>
+        <td>{{ matching.balance_beam }}</td>
+        <td>{{ matching.floor_exercise }}</td>
+        <td>{{ matching.similar }}</td>
+        <td>{{ matching.different }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<hr>
+<h3>Type your own gymnast here and look for your matches above</h3>
+<form action="{{ url_for('add_entry') }}" method=post class=add-entry>
+    <dl>
+        <input type=text size=15 name=gymnast placeholder="Your gymnast">
+        <input type=text size=15 name=vault placeholder="Vault score">
+        <input type=text size=15 name=bars placeholder="Bars score">
+        <input type=text size=15 name=beam placeholder="Beam score">
+        <input type=text size=15 name=floor placeholder="Floor score">
+        <input type=submit value=Find>
+    </dl>
+</form>
+<hr>
+<h3>Based on: Tokyo All-around Competition Final Result</h3>
+<table>
+    <thead>
+    <tr>
+        <th>Gymnast</th>
+        <th>Rank</th>
+        <th>Vault</th>
+        <th>Bars</th>
+        <th>Beam</th>
+        <th>Floor</th>
+        <th>Total</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for result in results %}
+    <tr>
+        <td>{{ result.gymnast }}</td>
+        <td>{{ result.rank }}</td>
+        <td>{{ result.vault }}</td>
+        <td>{{ result.uneven_bars }}</td>
+        <td>{{ result.balance_beam }}</td>
+        <td>{{ result.floor_exercise }}</td>
+        <td>{{ result.total }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
 
 </body>
 </html>

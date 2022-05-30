@@ -1,0 +1,26 @@
+filepath:
+  data: data/external/women_final_results.csv
+  labeled_data: data/external/women_final_results_label.csv
+  model_diagnostics: data/external/women_gym_model.txt
+  model: data/external/women_gym_model.obj
+  avg_sd: data/external/avg_sd.json
+
+s3_path:
+  labeled_data: avc-project-data/women_final_results_label.csv
+  model: avc-project-data/women_gym_model.obj
+  avg_sd: avc-project-data/avg_sd.json
+
+acquire_data:
+  url: https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around
+  columns: ['rank', 'gymnast', 'vault', 'uneven_bars', 'balance_beam', 'floor_exercise', 'total']
+
+clustering:
+  features: ['vault', 'uneven_bars', 'balance_beam', 'floor_exercise']
+  random_state: 42
+  try_models:
+    min_clusters: 2
+    max_clusters: 8
+  final_model:
+    n_clusters: 4
+
+

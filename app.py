@@ -1,12 +1,15 @@
 import logging.config
 import sqlite3
 import traceback
+import yaml
+import argparse
 
 import sqlalchemy.exc
 from flask import Flask, render_template, request, redirect, url_for
 
 # For setting up the Flask-SQLAlchemy database session
-from src.add_songs import Tracks, TrackManager
+from src.populate_database import Results, UserInputs, ResultsManager
+from src.app_helper import get_label_for_input
 
 # Initialize the Flask application
 app = Flask(__name__, template_folder="app/templates",
@@ -28,8 +31,28 @@ logger.debug(
     'go to 127.0.0.1 instead of 0.0.0.0.', app.config["HOST"]
     , app.config["PORT"])
 
+with open('config/config.yaml', 'r', encoding='utf8') as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+
+parser = argparse.ArgumentParser(
+    description="Run the gymnast matching app")
+parser.add_argument('--database_uri',
+                        help='provide a database uri if none exists in the environment'
+                             'or your wanna use otherwise',
+                        default='sqlite:///data/tracks.db')
+parser.add_argument('--s3_bucket_name',
+                    help='Provide your own bucket name or default will be used.',
+                    default='2022-msia423-luo-kunhang')
+#
+args = parser.parse_args()
+
+# if SQLALCHEMY_DATABASE_URI:
+#     engine_string = SQLALCHEMY_DATABASE_URI
+# else:
+#     engine_string = args.database_uri
+
 # Initialize the database session
-track_manager = TrackManager(app)
+result_manager = ResultsManager(app)
 
 
 @app.route('/')
@@ -45,10 +68,12 @@ def index():
     """
 
     try:
-        tracks = track_manager.session.query(Tracks).limit(
-            app.config["MAX_ROWS_SHOW"]).all()
+        matchings = result_manager.session.query(UserInputs).all()
+        results = result_manager.session.query(Results).all()
         logger.debug("Index page accessed")
-        return render_template('index.html', tracks=tracks)
+        return render_template('index.html',
+                               matchings=matchings[-app.config["MAX_ROWS_SHOW"]:],
+                               results=results)
     except sqlite3.OperationalError as e:
         logger.error(
             "Error page returned. Not able to query local sqlite database: %s."
@@ -76,11 +101,27 @@ def add_entry():
     """
 
     try:
-        track_manager.add_track(artist=request.form['artist'],
-                                album=request.form['album'],
-                                title=request.form['title'])
-        logger.info("New song added: %s by %s", request.form['title'],
-                    request.form['artist'])
+        user_input = {
+            'rank': None,
+            'gymnast': request.form['gymnast'],
+            'vault': float(request.form['vault']),
+            'uneven_bars': float(request.form['bars']),
+            'balance_beam': float(request.form['beam']),
+            'floor_exercise': float(request.form['floor'])
+        }
+        # get label
+        label = get_label_for_input(user_input, config, args.s3_bucket_name)
+        user_input['label'] = label
+
+        # get similar and different gymnast from RDS
+        similar = result_manager.get_matched_gymnast(label, False)
+        different = result_manager.get_matched_gymnast(label, True)
+        user_input['similar'] = similar.gymnast
+        user_input['different'] = different.gymnast
+
+        # write to user_input table
+        result_manager.add_user_input(**user_input)
+        logger.info("New gymnast added: %s", request.form['gymnast'])
         return redirect(url_for('index'))
     except sqlite3.OperationalError as e:
         logger.error(
