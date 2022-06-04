@@ -1,4 +1,7 @@
-
+"""
+defines the data models for the relational database
+completes the functions of the database: inserting, selecting
+"""
 import logging
 import typing
 import random
@@ -67,44 +70,48 @@ class ResultsManager:
     def close(self) -> None:
         self.session.close()
 
-    def add_result(self, **kwargs) -> None:
+    def add_result(self, result) -> None:
+        """
+        adds a row to the results table
+        :param result: a dictionary that contains
+            necessary fields for the Results table
+        :return: None
+        """
         session = self.session
-        result = Results(rank=kwargs['rank'],
-                         gymnast=kwargs['gymnast'],
-                         vault=kwargs['vault'],
-                         uneven_bars=kwargs['uneven_bars'],
-                         balance_beam=kwargs['balance_beam'],
-                         floor_exercise=kwargs['floor_exercise'],
-                         total=kwargs['total'],
-                         label=kwargs['label']
-                         )
+        result_obj = Results(**result)
         try:
-            session.add(result)
+            session.add(result_obj)
             session.commit()
-            logger.info("The result for %s has been added to the table.", kwargs['gymnast'])
+            logger.info("The result for %s has been added to the table.", result['gymnast'])
         except Exception as e:
             logger.error(e)
             raise e
 
-    def add_user_input(self, **kwargs) -> None:
+    def add_user_input(self, user_input) -> None:
+        """
+        adds a row to the user_input_matching table
+        :param user_input: a dictionary that contains
+            necessary fields for user_input_matching table
+        :return: None
+        """
         session = self.session
-        user_input = UserInputs(gymnast=kwargs['gymnast'],
-                                vault=kwargs['vault'],
-                                uneven_bars=kwargs['uneven_bars'],
-                                balance_beam=kwargs['balance_beam'],
-                                floor_exercise=kwargs['floor_exercise'],
-                                label=kwargs['label'],
-                                similar=kwargs['similar'],
-                                different=kwargs['different'])
-        session.add(user_input)
+        user_input_obj = UserInputs(**user_input)
+        session.add(user_input_obj)
         session.commit()
         logger.info("The user input for %s has been added to the table.",
-                    kwargs['gymnast'])
+                    user_input['gymnast'])
 
     def get_matched_gymnast(self,
                             user_label: int,
                             different: bool,
                             ) -> Tuple[str, str]:
+        """
+        returns a gymnast based on given label
+        :param user_label: the label of user input
+        :param different: returns the gymnast in the same
+            group if true, different group if false
+        :return: name of the similar and different gymnast
+        """
         session = self.session
         if different:
             gymnast = (
@@ -120,30 +127,28 @@ class ResultsManager:
 
 
 def create_db(engine_string: str) -> None:
+    """
+    creates the tables in the database
+    :param engine_string: database uri
+    :return: None
+    """
     engine = create_engine(engine_string)
     Base.metadata.create_all(engine)
     logger.info("Tables created!")
 
 
-# def add_result(engine_string: str, result: dict) -> None:
-#     result_manager = ResultsManager(app=None, engine_string=engine_string)
-#     try:
-#         result_manager.add_result(**result)
-#     except sqlalchemy.exc.OperationalError as e:
-#         logger.error(
-#             "Error page returned. Not able to add song to MySQL database.  "
-#             "Please check engine string and VPN. Error: %s ", e)
-#     except Exception as e:
-#         logger.error("Error occurred %s", e)
-#     result_manager.close()
-
-
 def add_results(engine_string: str, filename: str) -> None:
+    """
+    adds multiple rows to the table results
+    :param engine_string: database uri
+    :param filename: file path for input
+    :return:
+    """
     results = pd.read_csv(filename).to_dict(orient='records')
     result_manager = ResultsManager(app=None, engine_string=engine_string)
     for i in range(len(results)):
         try:
-            result_manager.add_result(**results[i])
+            result_manager.add_result(results[i])
         except sqlalchemy.exc.OperationalError as e:
             logger.error(
                 "Error page returned. Not able to add song to MySQL database.  "

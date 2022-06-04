@@ -42,11 +42,11 @@
 <h3>Type your own gymnast here and look for your matches above</h3>
 <form action="{{ url_for('add_entry') }}" method=post class=add-entry>
     <dl>
-        <input type=text size=15 name=gymnast placeholder="Your gymnast">
-        <input type=text size=15 name=vault placeholder="Vault score">
-        <input type=text size=15 name=bars placeholder="Bars score">
-        <input type=text size=15 name=beam placeholder="Beam score">
-        <input type=text size=15 name=floor placeholder="Floor score">
+        <input type=text size=15 name=gymnast step=0.01 placeholder="Your gymnast">
+        <input type=number size=15 name=vault step=0.01 placeholder="vault" min=0.0 max=20.0>
+        <input type=number size=15 name=bars step=0.01 placeholder="bars" min=0.0 max=20.0>
+        <input type=number size=15 name=beam step=0.01 placeholder="beam" min=0.0 max=20.0>
+        <input type=number size=15 name=floor step=0.01 placeholder="floor" min=0.0 max=20.0>
         <input type=submit value=Find>
     </dl>
 </form>

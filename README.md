@@ -12,23 +12,35 @@
 
 ## Project Charter
 ##### Vision
-In gymnastics, all around competitions are the highest honors for both individuals and teams. Men and women compete over multiple events to be ranked of the sum of the scores.
+In gymnastics, athletes compete over 4 events, each of which contributes to their final score. 
+However, each gymnast has stronger and weaker events. 
 
-However, each has stronger and weaker events. In the context of team all around competitions, coaches pick a team of gymnasts with different strength for the highest scores possible. Another scenario could be that alternates are chosen in case of any injuries before the team competition.
+In the team all around competitions, for each event, all team members do not need to compete, 
+so the coach aims to pick a team of gymnasts with different strength for the highest total scores possible. 
 
-Moreover, fans can use a fantasy sport simulator to analyze gymnasts.
+In another scenario, if any gymnast had injuries before the competition, an alternate needs to replace 
+the injured. Usually, the alternate is desired to have the same strong events, so she could 
+compete at the same events.
 
+Let's picture two situations related to the scenarios above:
+1. Gymnast X is in the team. Who should we pick as her teammates?
+2. Gymnast Y is injured. Who should replace her?
 
 ##### Mission
-Behind this application is a clustering model that assigns gymnasts to a group. The user will choose a gymnast from a drop-down menu or input the projected scores of an imaginary athlete. The application will output one or more gymnast(s) similar or dissimilar to the input from the same cluster or the most dissimilar cluster.
+Given a gymnast, an app that clusters gymnasts based on their competition results can generate 
+a similar gymnast from the same cluster, or a different gymnast from other clusters.
 
 The data are from the all around final results at the Tokyo Olympic Games from Wikipedia.\
 https://en.wikipedia.org/wiki/Gymnastics_at_the_2020_Summer_Olympics_%E2%80%93_Women%27s_artistic_individual_all-around
 
 ##### Success Criteria
-The modeling metric for this unsupervised clustering model is mainly the F-score of the clusters. Also, the pseudo R-squared should be at least 0.5.
+The primary metric for the unsupervised clustering model is the pseudo F-score. 
+Also, the pseudo R-squared should be at least 0.5.
 
-Because the site is for coaches and fans, and the business goal is to help professional find better strategies and entertain the fans, the number of visits and the probability of revisiting the application should be measured to determine the traffic and health of the application.
+Because the site is for coaches and fans, 
+and the business goal is to help professional find better strategies and entertain the fans, 
+the number of visits and the probability of revisiting the application should be measured to 
+determine the traffic and health of the application.
 
 
 ## Directory structure 
@@ -79,37 +91,64 @@ Because the site is for coaches and fans, and the business goal is to help profe
 ```
 
 ## Running the app 
+### 1. Prepare the model and data
+In this section, commands are provided to pre-compute entities needed for the web app to run.
+Model object and data will be saved at designated folder on AWS S3 bucket and RDS database 
+(or the local sqlite database).
+
+For the docker run commands in this section, your environment variables must 
+be present and correct. The bucket name is required,
+and make sure it works with your access key and secret key.
+##### Build the image 
+
+To build the image, run from this directory (the root of the repo):
 ```bash
-docker build -f dockerfiles/Dockerfile.run -t data_model .
-docker run --env-file ~/aws/.profile data_model
+ docker build -f dockerfiles/Dockerfile.run -t gymmatch_model .
 ```
 
+The building structure:
+1. acquire_to_s3
+2. train_from_s3
+3. create_database
+4. populate_database
+5. model_to_s3
 
-### 1. Initialize the database 
-#### Build the image 
-
-To build the image, run from this directory (the root of the repo): 
-
+You can run the container the whole pipeline or step by step.
+#### Approach 1 (recommended): run the pipeline
+(step 2, 3, 4, 5) To save the model and files to an s3 bucket run: (this implies the raw data
+is in the bucket you provide already)
 ```bash
- docker build -f dockerfiles/Dockerfile.run -t pennylanedb .
-```
-#### Create the database 
-To create the database in the location configured in `config.py` run: 
-
-```bash
-docker run --mount type=bind,source="$(pwd)"/data,target=/app/data/ pennylanedb create_db  --engine_string=sqlite:///data/tracks.db
-```
-The `--mount` argument allows the app to access your local `data/` folder and save the SQLite database there so it is available after the Docker container finishes.
-
-
-#### Adding songs 
-To add songs to the database:
-
-```bash
-docker run --mount type=bind,source="$(pwd)"/data,target=/app/data/ pennylanedb ingest --engine_string=sqlite:///data/tracks.db --artist=Emancipator --title="Minor Cause" --album="Dusk to Dawn"
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model pipeline --s3_bucket_name <your-bucket>
 ```
 
-#### Defining your engine string 
+(step 1, 2, 3, 4, 5) To acquire data and save the model and files to an s3 bucket run: (if you don't
+have the raw data in your bucket)
+```bash
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model all --s3_bucket_name <your-bucket>
+```
+#### Approach 2: run a single step
+To acquire data from the source website and save them to S3 bucket run:
+```bash
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model acquire_to_s3 --s3_bucket_name <your-bucket>
+```
+
+To generate the clustering model and necessary files run:
+```bash
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model train_from_s3 --s3_bucket_name <your-bucket>
+```
+
+To create database and populate the tables run:
+```bash
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model populate_database --s3_bucket_name <your-bucket>
+```
+
+To upload the model object and other files for the app run:
+```bash
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model model_to_s3 --s3_bucket_name <your-bucket>
+```
+
+#### Notes
+Defining your engine string:\
 A SQLAlchemy database connection is defined by a string with the following format:
 
 `dialect+driver://username:password@host:port/database`
@@ -138,43 +177,48 @@ engine_string = 'sqlite://///Users/cmawer/Repos/2022-msia423-template-repository
 `config/flaskconfig.py` holds the configurations for the Flask app. It includes the following configurations:
 
 ```python
-DEBUG = True  # Keep True for debugging, change to False when moving to production 
-LOGGING_CONFIG = "config/logging/local.conf"  # Path to file that configures Python logger
-HOST = "0.0.0.0" # the host that is running the app. 0.0.0.0 when running locally 
-PORT = 5000  # What port to expose app on. Must be the same as the port exposed in dockerfiles/Dockerfile.app 
-SQLALCHEMY_DATABASE_URI = 'sqlite:///data/tracks.db'  # URI (engine string) for database that contains tracks
-APP_NAME = "penny-lane"
-SQLALCHEMY_TRACK_MODIFICATIONS = True 
+import os
+
+DEBUG = True # Keep True for debugging, change to False when moving to production 
+LOGGING_CONFIG = "config/logging/local.conf" # Path to file that configures Python logger
+PORT = 5000 # What port to expose app on. Must be the same as the port exposed in dockerfiles/Dockerfile.app
+APP_NAME = "gym_match"
+SQLALCHEMY_TRACK_MODIFICATIONS = True
+HOST = '0.0.0.0' # the host that is running the app. 0.0.0.0 when running locally
 SQLALCHEMY_ECHO = False  # If true, SQL for queries made will be printed
-MAX_ROWS_SHOW = 100 # Limits the number of rows returned from the database 
+MAX_ROWS_SHOW = 5 # Limits the number of rows returned from the database 
+
+SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+if not SQLALCHEMY_DATABASE_URI:
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///data/gymnastics.db'
 ```
 
-### 3. Run the Flask app 
-
+### 3. Run the Flask app
 #### Build the image 
 
 To build the image, run from this directory (the root of the repo): 
 
 ```bash
- docker build -f dockerfiles/Dockerfile.app -t pennylaneapp .
+ docker build -f dockerfiles/Dockerfile.app -t gymmatch_app .
 ```
 
-This command builds the Docker image, with the tag `pennylaneapp`, based on the instructions in `dockerfiles/Dockerfile.app` and the files existing in this directory.
+This command builds the Docker image, with the tag `gymmatch_app`, 
+based on the instructions in `dockerfiles/Dockerfile.app` 
+and the files existing in this directory.
 
 #### Running the app
 
-To run the Flask app, run: 
-
+To run the Flask app, run:
 ```bash
- docker run --name test-app --mount type=bind,source="$(pwd)"/data,target=/app/data/ -p 5000:5000 pennylaneapp
+docker run --name gymmatch_apptest -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ -it -p 0.0.0.0:5001:5000 gymmatch_app
 ```
-You should be able to access the app at http://127.0.0.1:5000/ in your browser (Mac/Linux should also be able to access the app at http://127.0.0.1:5000/ or localhost:5000/) .
+You should be able to access the app at http://127.0.0.1:5001/ in your browser (Mac/Linux should also be able to access the app at http://0.0.0.0:5001/ or localhost:5000/) .
 
 The arguments in the above command do the following: 
 
-* The `--name test-app` argument names the container "test". This name can be used to kill the container once finished with it.
+* The `--name gymmatch_apptest` argument names the container "test". This name can be used to kill the container once finished with it.
 * The `--mount` argument allows the app to access your local `data/` folder so it can read from the SQLlite database created in the prior section. 
-* The `-p 5000:5000` argument maps your computer's local port 5000 to the Docker container's port 5000 so that you can view the app in your browser. If your port 5000 is already being used for someone, you can use `-p 5001:5000` (or another value in place of 5001) which maps the Docker container's port 5000 to your local port 5001.
+* The `-p 5001:5000` argument maps your computer's local port 5000 to the Docker container's port 5000 so that you can view the app in your browser. If your port 5000 is already being used for someone, you can use `-p 5001:5000` (or another value in place of 5001) which maps the Docker container's port 5000 to your local port 5001.
 
 Note: If `PORT` in `config/flaskconfig.py` is changed, this port should be changed accordingly (as should the `EXPOSE 5000` line in `dockerfiles/Dockerfile.app`)
 
@@ -184,9 +228,9 @@ Note: If `PORT` in `config/flaskconfig.py` is changed, this port should be chang
 Once finished with the app, you will need to kill the container. If you named the container, you can execute the following: 
 
 ```bash
-docker kill test-app 
+docker kill gymmatch_apptest
 ```
-where `test-app` is the name given in the `docker run` command.
+where `gymmatch_apptest` is the name given in the `docker run` command.
 
 If you did not name the container, you can look up its name by running the following:
 
@@ -201,16 +245,16 @@ The name will be provided in the right most column.
 Run the following:
 
 ```bash
- docker build -f dockerfiles/Dockerfile.test -t pennylanetest .
+ docker build -f dockerfiles/Dockerfile.test -t gymmatch_test .
 ```
 
 To run the tests, run: 
 
 ```bash
- docker run pennylanetest
+ docker run gymmatch_test
 ```
 
-The following command will be executed within the container to run the provided unit tests under `test/`:  
+The following command will be executed within the container to run the provided unit tests under `tests/`:  
 
 ```bash
 python -m pytest

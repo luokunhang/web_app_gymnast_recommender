@@ -1,11 +1,12 @@
 filepath:
-  data: data/external/women_final_results.csv
-  labeled_data: data/external/women_final_results_label.csv
-  model_diagnostics: data/external/women_gym_model.txt
-  model: data/external/women_gym_model.obj
-  avg_sd: data/external/avg_sd.json
+  data: data/intermediate/women_final_results.csv
+  labeled_data: data/intermediate/women_final_results_label.csv
+  model_diagnostics: data/intermediate/women_gym_model.txt
+  model: data/intermediate/women_gym_model.obj
+  avg_sd: data/intermediate/avg_sd.json
 
 s3_path:
+  data: avc-project-data/women_final_results.csv
   labeled_data: avc-project-data/women_final_results_label.csv
   model: avc-project-data/women_gym_model.obj
   avg_sd: avc-project-data/avg_sd.json

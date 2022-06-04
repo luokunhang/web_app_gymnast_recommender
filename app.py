@@ -25,7 +25,7 @@ logger = logging.getLogger(app.config["APP_NAME"])
 logger.debug(
     'Web app should be viewable at %s:%s if docker run command maps local '
     'port to the same port as configured for the Docker container '
-    'in config/flaskconfig.py (e.g. `-p 5000:5000`). Otherwise, go to the '
+    'in config/flaskconfig.py (e.g. `-p 5001:5000`). Otherwise, go to the '
     'port defined on the left side of the port mapping '
     '(`i.e. -p THISPORT:5000`). If you are running from a Windows machine, '
     'go to 127.0.0.1 instead of 0.0.0.0.', app.config["HOST"]
@@ -34,24 +34,12 @@ logger.debug(
 with open('config/config.yaml', 'r', encoding='utf8') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-parser = argparse.ArgumentParser(
-    description="Run the gymnast matching app")
-parser.add_argument('--database_uri',
-                        help='provide a database uri if none exists in the environment'
-                             'or your wanna use otherwise',
-                        default='sqlite:///data/tracks.db')
+parser = argparse.ArgumentParser(description="Run the gymnast matching app")
 parser.add_argument('--s3_bucket_name',
                     help='Provide your own bucket name or default will be used.',
                     default='2022-msia423-luo-kunhang')
-#
 args = parser.parse_args()
 
-# if SQLALCHEMY_DATABASE_URI:
-#     engine_string = SQLALCHEMY_DATABASE_URI
-# else:
-#     engine_string = args.database_uri
-
-# Initialize the database session
 result_manager = ResultsManager(app)
 
 
@@ -102,7 +90,6 @@ def add_entry():
 
     try:
         user_input = {
-            'rank': None,
             'gymnast': request.form['gymnast'],
             'vault': float(request.form['vault']),
             'uneven_bars': float(request.form['bars']),
@@ -120,20 +107,30 @@ def add_entry():
         user_input['different'] = different.gymnast
 
         # write to user_input table
-        result_manager.add_user_input(**user_input)
+        result_manager.add_user_input(user_input)
         logger.info("New gymnast added: %s", request.form['gymnast'])
         return redirect(url_for('index'))
     except sqlite3.OperationalError as e:
         logger.error(
-            "Error page returned. Not able to add song to local sqlite "
+            "Error page returned. Not able to interact with the sqlite "
             "database: %s. Error: %s ",
             app.config['SQLALCHEMY_DATABASE_URI'], e)
         return render_template('error.html')
     except sqlalchemy.exc.OperationalError as e:
         logger.error(
-            "Error page returned. Not able to add song to MySQL database: %s. "
+            "Error page returned. Not able to interact with the MySQL database: %s. "
             "Error: %s ",
             app.config['SQLALCHEMY_DATABASE_URI'], e)
+        return render_template('error.html')
+    except Exception as e:
+        logger.error(
+            "Other error occurred %s .", e
+        )
+        return render_template('error.html')
+    except Exception as e:
+        logger.error(
+            "Unknown error %s ", e
+        )
         return render_template('error.html')
 
 
