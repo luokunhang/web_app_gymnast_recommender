@@ -33,7 +33,8 @@ def get_label_for_input(user_input: dict,
     util.retrieve_from_s3(bucket,
                           config['s3_path']['avg_sd'],
                           config['filepath']['avg_sd'])
-    with open('data/external/avg_sd.json', 'r') as file:
+    with open('data/external/avg_sd.json', 'r',
+              encoding='utf8') as file:
         avg_sd = json.load(file)
 
     # get std of scores

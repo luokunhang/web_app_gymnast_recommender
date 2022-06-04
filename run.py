@@ -3,15 +3,14 @@ Configures the clustering recommender pipeline and saves
 the files needed for an online model recommending app
 """
 import os.path
+import argparse
+import logging.config
+import yaml
 
 from src import util
 from src import acquire_data
 from src import populate_database
 from src import clustering
-
-import argparse
-import yaml
-import logging.config
 
 logging.config.fileConfig('config/logging/local.conf')
 logger = logging.getLogger('gymnast-matching-pipeline')

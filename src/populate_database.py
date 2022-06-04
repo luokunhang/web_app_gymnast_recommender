@@ -11,7 +11,7 @@ import pandas as pd
 import flask
 import sqlalchemy
 from sqlalchemy import Column, Integer, Float, String, create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.exc import OperationalError
 from flask_sqlalchemy import SQLAlchemy
 
@@ -20,6 +20,9 @@ logger = logging.getLogger(__file__)
 
 
 class Results(Base):
+    """
+    defines the results_labels table
+    """
     __tablename__ = 'results_labels'
 
     id = Column(Integer, primary_key=True)
@@ -37,6 +40,9 @@ class Results(Base):
 
 
 class UserInputs(Base):
+    """
+    defines the user_input_matching table
+    """
     __tablename__ = 'user_input_matching'
 
     id = Column(Integer, primary_key=True)
@@ -54,6 +60,9 @@ class UserInputs(Base):
 
 
 class ResultsManager:
+    """
+    defines functions to interact with the database
+    """
     def __init__(self, app: typing.Optional[flask.app.Flask] = None,
                  engine_string: typing.Optional[str] = None):
         if app:
@@ -68,6 +77,10 @@ class ResultsManager:
                 "Need either an engine string or a Flask app to initialize")
 
     def close(self) -> None:
+        """
+        closes the connection to the db
+        :return: None
+        """
         self.session.close()
 
     def add_result(self, result) -> None:
@@ -83,9 +96,12 @@ class ResultsManager:
             session.add(result_obj)
             session.commit()
             logger.info("The result for %s has been added to the table.", result['gymnast'])
-        except Exception as e:
-            logger.error(e)
-            raise e
+        except OperationalError as err:
+            logger.error('Optional error %s .', err)
+            raise err
+        except Exception as err:
+            logger.error(err)
+            raise err
 
     def add_user_input(self, user_input) -> None:
         """
@@ -96,10 +112,17 @@ class ResultsManager:
         """
         session = self.session
         user_input_obj = UserInputs(**user_input)
-        session.add(user_input_obj)
-        session.commit()
-        logger.info("The user input for %s has been added to the table.",
-                    user_input['gymnast'])
+        try:
+            session.add(user_input_obj)
+            session.commit()
+            logger.info("The user input for %s has been added to the table.",
+                        user_input['gymnast'])
+        except OperationalError as err:
+            logger.error('Optional error %s .', err)
+            raise err
+        except Exception as err:
+            logger.error(err)
+            raise err
 
     def get_matched_gymnast(self,
                             user_label: int,
@@ -142,17 +165,17 @@ def add_results(engine_string: str, filename: str) -> None:
     adds multiple rows to the table results
     :param engine_string: database uri
     :param filename: file path for input
-    :return:
+    :return: None
     """
     results = pd.read_csv(filename).to_dict(orient='records')
     result_manager = ResultsManager(app=None, engine_string=engine_string)
     for i in range(len(results)):
         try:
             result_manager.add_result(results[i])
-        except sqlalchemy.exc.OperationalError as e:
+        except sqlalchemy.exc.OperationalError as err:
             logger.error(
                 "Error page returned. Not able to add song to MySQL database.  "
-                "Please check engine string and VPN. Error: %s ", e)
-        except Exception as e:
-            logger.error("Error occurred %s", e)
+                "Please check engine string and VPN. Error: %s ", err)
+        except Exception as err:
+            logger.error("Error occurred %s", err)
         result_manager.close()

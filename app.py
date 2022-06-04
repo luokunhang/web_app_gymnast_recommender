@@ -1,8 +1,11 @@
+"""
+configures the web app
+"""
 import logging.config
 import sqlite3
 import traceback
-import yaml
 import argparse
+import yaml
 
 import sqlalchemy.exc
 from flask import Flask, render_template, request, redirect, url_for
@@ -62,19 +65,19 @@ def index():
         return render_template('index.html',
                                matchings=matchings[-app.config["MAX_ROWS_SHOW"]:],
                                results=results)
-    except sqlite3.OperationalError as e:
+    except sqlite3.OperationalError as err:
         logger.error(
             "Error page returned. Not able to query local sqlite database: %s."
             " Error: %s ",
-            app.config['SQLALCHEMY_DATABASE_URI'], e)
+            app.config['SQLALCHEMY_DATABASE_URI'], err)
         return render_template('error.html')
-    except sqlalchemy.exc.OperationalError as e:
+    except sqlalchemy.exc.OperationalError as err:
         logger.error(
             "Error page returned. Not able to query MySQL database: %s. "
             "Error: %s ",
-            app.config['SQLALCHEMY_DATABASE_URI'], e)
+            app.config['SQLALCHEMY_DATABASE_URI'], err)
         return render_template('error.html')
-    except:
+    except Exception as err:
         traceback.print_exc()
         logger.error("Not able to display tracks, error page returned")
         return render_template('error.html')
@@ -110,27 +113,20 @@ def add_entry():
         result_manager.add_user_input(user_input)
         logger.info("New gymnast added: %s", request.form['gymnast'])
         return redirect(url_for('index'))
-    except sqlite3.OperationalError as e:
+    except sqlite3.OperationalError as err:
         logger.error(
             "Error page returned. Not able to interact with the sqlite "
             "database: %s. Error: %s ",
-            app.config['SQLALCHEMY_DATABASE_URI'], e)
+            app.config['SQLALCHEMY_DATABASE_URI'], err)
         return render_template('error.html')
-    except sqlalchemy.exc.OperationalError as e:
+    except sqlalchemy.exc.OperationalError as err:
         logger.error(
             "Error page returned. Not able to interact with the MySQL database: %s. "
             "Error: %s ",
-            app.config['SQLALCHEMY_DATABASE_URI'], e)
+            app.config['SQLALCHEMY_DATABASE_URI'], err)
         return render_template('error.html')
-    except Exception as e:
-        logger.error(
-            "Other error occurred %s .", e
-        )
-        return render_template('error.html')
-    except Exception as e:
-        logger.error(
-            "Unknown error %s ", e
-        )
+    except Exception as err:
+        logger.error("Other error occurred %s .", err)
         return render_template('error.html')
 
 
