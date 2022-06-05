@@ -103,7 +103,7 @@ and make sure it works with your access key and secret key.
 
 To build the image, run from this directory (the root of the repo):
 ```bash
- docker build -f dockerfiles/Dockerfile.run -t gymmatch_model .
+ docker build -f dockerfiles/Dockerfile -t gymmatch_model .
 ```
 
 The building structure:
