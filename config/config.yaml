@@ -1,5 +1,6 @@
 filepath:
   data: data/intermediate/women_final_results.csv
+  data_features: data/intermediate/women_final_results_features.csv
   labeled_data: data/intermediate/women_final_results_label.csv
   model_diagnostics: data/intermediate/women_gym_model.txt
   model: data/intermediate/women_gym_model.obj
@@ -24,4 +25,6 @@ clustering:
   final_model:
     n_clusters: 4
 
+database:
+  results: ['rank', 'gymnast', 'vault', 'uneven_bars', 'balance_beam', 'floor_exercise', 'total', 'label']
 

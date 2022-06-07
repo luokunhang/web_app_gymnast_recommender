@@ -35,7 +35,9 @@ def pre_processing(config: dict) -> Tuple[pd.DataFrame, list[str]]:
 
     # centering at mean for rows
     data = center(data, std_columns)
-    return data, std_columns
+    data.to_csv(config['filepath']['data_features'])
+    logger.info('Data with features have been saved at %s .',
+                config['filepath']['data_features'])
 
 
 def standardize(data: pd.DataFrame,
@@ -62,6 +64,7 @@ def standardize(data: pd.DataFrame,
             avg_sd_dict[i + '_avg'] = avg
             avg_sd_dict[i + '_sd'] = std
             data[i + '_std'] = (data[i] - avg) / std
+        logger.info('Data are standardized.')
         return data, avg_sd_dict
     except KeyError as err:
         logger.error('Unknown column name not existent'
@@ -90,28 +93,62 @@ def center(data: pd.DataFrame,
                                               skipna=False)
         for i in std_columns:
             data[i] = data[i] - data['mean']
+        logger.info('Data are mean centered.')
+        return data
     except KeyError as err:
         logger.error('Unknown column name not existent'
                      'in the dataframe. %s', err)
         raise err
-    return data
 
 
-def try_models(data: pd.DataFrame,
-               std_columns: list[str],
-               config: dict) -> None:
+def get_model(config: dict) -> None:
+    """
+    trains the finalized model and saves it to the repo
+    :param config: a dictionary that contains
+        file path to load the data with features
+        number of clusters
+        random state for the model
+        file path to save the model object
+    :return: None
+    """
+    data = pd.read_csv(config['filepath']['data_features'])
+    std_columns = [i + '_std' for i in config['clustering']['features']]
+    n_clusters = config['clustering']['final_model']['n_clusters']
+    random_state = config['clustering']['random_state']
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state).fit(data[std_columns])
+    logger.info('The model has been saved in this repo.')
+    with open(config['filepath']['model'], 'wb') as file:
+        pickle.dump(kmeans, file)
+        logger.info('Model object has been saves in this repo.')
+
+
+def score(config: dict) -> None:
+    try:
+        with open(config['filepath']['model'], 'rb') as file:
+            kmeans = pickle.load(file)
+        data = pd.read_csv(config['filepath']['data_features'])
+        data['label'] = kmeans.labels_
+        data.to_csv(config['filepath']['labeled_data'], index=False)
+        logger.info('Labeled data has been saved in this repo.')
+    except FileNotFoundError as err:
+        logger.error('Could not find the file %s .', err)
+        raise err
+
+
+def try_models(config: dict) -> None:
     """
     explores K-means clustering models with
     a range of K
-    :param data: the training data dataframe
-    :param std_columns: columns to operate on
     :param config: a dictionary that contains
+        file path to load the data with features
         min number of clusters to try
         max number of clusters to try
         random state for the model
         file path to save the model diagnostics
     :return: None
     """
+    data = pd.read_csv(config['filepath']['data_features'])
+    std_columns = [i + '_std' for i in config['clustering']['features']]
     min_clusters = config['clustering']['try_models']['min_clusters']
     max_clusters = config['clustering']['try_models']['max_clusters']
     random_state = config['clustering']['random_state']
@@ -134,28 +171,5 @@ def try_models(data: pd.DataFrame,
                                 kmeans.cluster_centers_[kmeans.labels_[j]]) ** 2).sum()
             file.write(f'{i} cluster(s), pseudo F score: {pseudo_f}, ')
             file.write(f'pseudo R-squared: {between_ss/total_ss}.\n')
-
-
-def get_model(data: pd.DataFrame,
-              std_columns: list[str],
-              config: dict) -> None:
-    """
-    trains the finalized model and saves it to the repo
-    :param data: the training data dataframe
-    :param std_columns: columns to train with
-    :param config: a dictionary that contains
-        number of clusters
-        random state for the model
-        file path to save the labeled data
-        file path to save the model object
-    :return: None
-    """
-    n_clusters = config['clustering']['final_model']['n_clusters']
-    random_state = config['clustering']['random_state']
-    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state).fit(data[std_columns])
-    data['label'] = kmeans.labels_
-    data.to_csv(config['filepath']['labeled_data'], index=False)
-    logger.info('Labeled data has been saved in this repo.')
-    with open(config['filepath']['model'], "wb") as file:
-        pickle.dump(kmeans, file)
-        logger.info('Model object has been saves in this repo.')
+        logger.info('Model diagnostics have been saved at %s .',
+                    config['filepath']['model_diagnostics'])

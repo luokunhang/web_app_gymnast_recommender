@@ -55,12 +55,14 @@ determine the traffic and health of the application.
 │   ├── local/                        <- Directory for keeping environment variables and other local configurations that *do not sync** to Github 
 │   ├── logging/                      <- Configuration of python loggers
 │   ├── flaskconfig.py                <- Configurations for Flask API 
+│   ├── config.yaml                   <- Configurations for codes and functions 
 │
 ├── data                              <- Folder that contains data used or generated. Only the external/ and sample/ subdirectories are tracked by git. 
 │   ├── external/                     <- External data sources, usually reference data,  will be synced with git
 │   ├── sample/                       <- Sample data used for code development and testing, will be synced with git
 │
 ├── deliverables/                     <- Any white papers, presentations, final work products that are presented or delivered to a stakeholder 
+│   ├── Gymmatch.pdf                  <- Slide deck for presentation 
 │
 ├── docs/                             <- Sphinx documentation based on Python docstrings. Optional for this project.
 |
@@ -71,19 +73,16 @@ determine the traffic and health of the application.
 │
 ├── figures/                          <- Generated graphics and figures to be used in reporting, documentation, etc
 │
-├── models/                           <- Trained model objects (TMOs), model predictions, and/or model summaries
-│
-├── notebooks/
-│   ├── archive/                      <- Develop notebooks no longer being used.
-│   ├── deliver/                      <- Notebooks shared with others / in final state
-│   ├── develop/                      <- Current notebooks being used in development.
-│   ├── template.ipynb                <- Template notebook for analysis with useful imports, helper functions, and SQLAlchemy setup. 
-│
 ├── reference/                        <- Any reference material relevant to the project
 │
 ├── src/                              <- Source data for the project. No executable Python files should live in this folder.  
+│   ├── acquire_data.py               <- Data acquisition
+│   ├── clustering.py                 <- Functions in the model training step
+│   ├── populate_database.py          <- Database creation and ingestion 
+│   ├── app_helper.py                 <- Helper funcs for the flask app
 │
 ├── test/                             <- Files necessary for running model tests (see documentation below) 
+│   ├── test_clustering.py            <- Unit tests for funcs in clustering.py 
 │
 ├── app.py                            <- Flask wrapper for running the web app 
 ├── run.py                            <- Simplifies the execution of one or more of the src scripts  
@@ -107,45 +106,36 @@ To build the image, run from this directory (the root of the repo):
 ```
 
 The building structure:
-1. acquire_to_s3
-2. train_from_s3
-3. create_database
-4. populate_database
-5. model_to_s3
+1. acquire
+2. load_clean
+3. features
+4. train
+5. score
+6. evaluate
+7. create_database
+8. populate_database
 
 You can run the container the whole pipeline or step by step.
 #### Approach 1 (recommended): run the pipeline
-(step 2, 3, 4, 5) To save the model and files to an s3 bucket run: (this implies the raw data
-is in the bucket you provide already)
+(steps 2-8) To save the model and files to an s3 bucket run:
 ```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model pipeline --s3_bucket_name <your-bucket>
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model pipeline --s3_bucket_name <your-bucket>
 ```
 
-(step 1, 2, 3, 4, 5) To acquire data and save the model and files to an s3 bucket run: (if you don't
-have the raw data in your bucket)
+(steps 1-8) To acquire data and save the model and files to an s3 bucket run:
 ```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model all --s3_bucket_name <your-bucket>
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model all --s3_bucket_name <your-bucket>
 ```
 #### Approach 2: run a single step
-To acquire data from the source website and save them to S3 bucket run:
+To run each step, use one of the following command:
 ```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model acquire_to_s3 --s3_bucket_name <your-bucket>
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model <action> --s3_bucket_name <your-bucket>
 ```
+`action` can be one of `acquire`, `load_clean`, `features`, 
+`train`, `score`, `evaluate`, `create_database`, `populate_database`.
+`your-bucket` should be your own s3 bucket name. If this optional
+argument is absent, the default bucket will be used.
 
-To generate the clustering model and necessary files run:
-```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model train_from_s3 --s3_bucket_name <your-bucket>
-```
-
-To create database and populate the tables run:
-```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model populate_database --s3_bucket_name <your-bucket>
-```
-
-To upload the model object and other files for the app run:
-```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model model_to_s3 --s3_bucket_name <your-bucket>
-```
 
 #### Notes
 Defining your engine string:\

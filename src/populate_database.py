@@ -16,7 +16,7 @@ from sqlalchemy.exc import OperationalError
 from flask_sqlalchemy import SQLAlchemy
 
 Base = declarative_base()
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class Results(Base):
@@ -91,6 +91,7 @@ class ResultsManager:
         :return: None
         """
         session = self.session
+        logger.info(result)
         result_obj = Results(**result)
         try:
             session.add(result_obj)
@@ -156,18 +157,23 @@ def create_db(engine_string: str) -> None:
     :return: None
     """
     engine = create_engine(engine_string)
+
     Base.metadata.create_all(engine)
     logger.info("Tables created!")
 
 
-def add_results(engine_string: str, filename: str) -> None:
+def add_results(engine_string: str,
+                filename: str,
+                columns: list[str]) -> None:
     """
     adds multiple rows to the table results
     :param engine_string: database uri
     :param filename: file path for input
+    :param columns: columns to ingest to database
     :return: None
     """
-    results = pd.read_csv(filename).to_dict(orient='records')
+    results_data = pd.read_csv(filename)
+    results = results_data[columns].to_dict(orient='records')
     result_manager = ResultsManager(app=None, engine_string=engine_string)
     for i in range(len(results)):
         try:

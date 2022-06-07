@@ -38,8 +38,9 @@ def scraping(config: dict) -> None:
         logger.error("Need to add http:// to beginning of url. "
                      "Please try again. Url provided: %s",
                      config['acquire_data']['url'])
-    else:
-        logger.info(response.text)
+    except Exception as err:
+        logger.error('Unknown error occurred %s .', err)
+        raise err
 
     # cleaning
     data.set_axis(config['acquire_data']['columns'], axis=1, inplace=True)
@@ -50,4 +51,4 @@ def scraping(config: dict) -> None:
 
     data = data.applymap(lambda x: re.sub(r"\s?\(([^\)]+)\)", "", str(x)))
     data.to_csv(config['filepath']['data'], index=False)
-    logger.info('Data has been cleaned.')
+    logger.info('Data has been parsed and saved.')
