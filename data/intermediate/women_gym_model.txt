@@ -1,0 +1,7 @@
+2 cluster(s), pseudo F score: 15.43913041813875, pseudo R-squared: 0.5876204856868495.
+3 cluster(s), pseudo F score: 13.725514066693997, pseudo R-squared: 0.43342733496152047.
+4 cluster(s), pseudo F score: 12.184964502825876, pseudo R-squared: 0.3536387173463952.
+5 cluster(s), pseudo F score: 12.227515312622211, pseudo R-squared: 0.27978181215177783.
+6 cluster(s), pseudo F score: 11.403986602541048, pseudo R-squared: 0.239936231307372.
+7 cluster(s), pseudo F score: 11.35741334579499, pseudo R-squared: 0.1996606237429765.
+8 cluster(s), pseudo F score: 11.269869156609479, pseudo R-squared: 0.16861792009466303.
