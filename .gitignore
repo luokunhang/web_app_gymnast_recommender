@@ -11,5 +11,6 @@ __pycache__/
 data/*
 !data/sample/
 !data/external/
+!data/intermediate/
 config/local/*
 !.gitkeep
