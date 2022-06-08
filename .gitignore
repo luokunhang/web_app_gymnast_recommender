@@ -12,5 +12,6 @@ data/*
 !data/sample/
 !data/external/
 !data/intermediate/
+!data/gymnastics.db
 config/local/*
 !.gitkeep
