@@ -1,0 +1,19 @@
+FROM python:3.9-slim-buster
+
+RUN apt-get update -y && apt-get install -y dos2unix
+
+COPY ./requirements.txt /app/requirements.txt
+
+WORKDIR /app
+
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements.txt
+RUN pip3 install --use-deprecated=legacy-resolver lxml
+
+COPY . /app
+
+RUN dos2unix pipeline.sh && apt-get --purge remove -y dos2unix
+
+RUN chmod +x pipeline.sh
+
+ENTRYPOINT ["sh"]
