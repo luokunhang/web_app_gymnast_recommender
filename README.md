@@ -7,8 +7,6 @@
 	* [2. Configure Flask app ](#2.-Configure-Flask-app)
 	* [3. Run the Flask app ](#3.-Run-the-Flask-app)
 * [Testing](#Testing)
-* [Mypy](#Mypy)
-* [Pylint](#Pylint)
 
 ## Project Charter
 ##### Vision
@@ -68,7 +66,8 @@ determine the traffic and health of the application.
 |
 ├── dockerfiles/                      <- Directory for all project-related Dockerfiles 
 │   ├── Dockerfile.app                <- Dockerfile for building image to run web app
-│   ├── Dockerfile.run                <- Dockerfile for building image to execute run.py  
+│   ├── Dockerfile                    <- Dockerfile for building image to execute run.py  
+│   ├── Dockerfile.pipeline           <- Dockerfile for building image to run the ml pipeline
 │   ├── Dockerfile.test               <- Dockerfile for building image to run unit tests
 │
 ├── figures/                          <- Generated graphics and figures to be used in reporting, documentation, etc
@@ -87,6 +86,7 @@ determine the traffic and health of the application.
 ├── app.py                            <- Flask wrapper for running the web app 
 ├── run.py                            <- Simplifies the execution of one or more of the src scripts  
 ├── requirements.txt                  <- Python package dependencies 
+├── pipeline.sh                       <- Bash script file for the ml pipeline 
 ```
 
 ## Running the app 
@@ -102,7 +102,7 @@ and make sure it works with your access key and secret key.
 
 To build the image, run from this directory (the root of the repo):
 ```bash
- docker build -f dockerfiles/Dockerfile -t gymmatch_model .
+ docker build -f dockerfiles/Dockerfile -t final-project .
 ```
 
 The building structure:
@@ -119,17 +119,14 @@ You can run the container the whole pipeline or step by step.
 #### Approach 1 (recommended): run the pipeline
 (steps 2-8) To save the model and files to an s3 bucket run:
 ```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model pipeline --s3_bucket_name <your-bucket>
+docker build -f dockerfiles/Dockerfile.pipeline -t final-project-pipeline .
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ final-project-pipeline --s3_bucket_name <your-bucket>
 ```
 
-(steps 1-8) To acquire data and save the model and files to an s3 bucket run:
-```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model all --s3_bucket_name <your-bucket>
-```
 #### Approach 2: run a single step
 To run each step, use one of the following command:
 ```bash
-docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ gymmatch_model <action> --s3_bucket_name <your-bucket>
+docker run -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ final-project <action> --s3_bucket_name <your-bucket>
 ```
 `action` can be one of `acquire`, `load_clean`, `features`, 
 `train`, `score`, `evaluate`, `create_database`, `populate_database`.
@@ -181,7 +178,7 @@ if not SQLALCHEMY_DATABASE_URI:
 To build the image, run from this directory (the root of the repo): 
 
 ```bash
- docker build -f dockerfiles/Dockerfile.app -t gymmatch_app .
+ docker build -f dockerfiles/Dockerfile.app -t final-project-app .
 ```
 
 This command builds the Docker image, with the tag `gymmatch_app`, 
@@ -192,7 +189,7 @@ and the files existing in this directory.
 
 To run the Flask app, run:
 ```bash
-docker run --name gymmatch_apptest -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRETE_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ -it -p 0.0.0.0:5001:5000 gymmatch_app
+docker run --name gymmatch_apptest -e SQLALCHEMY_DATABASE_URI -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data/ -it -p 0.0.0.0:5001:5000 final-project-app
 ```
 You should be able to access the app at http://127.0.0.1:5001/ in your browser (Mac/Linux should also be able to access the app at http://0.0.0.0:5001/ or localhost:5000/) .
 
@@ -227,13 +224,13 @@ The name will be provided in the right most column.
 Run the following:
 
 ```bash
- docker build -f dockerfiles/Dockerfile.test -t gymmatch_test .
+ docker build -f dockerfiles/Dockerfile.test -t final-project-test .
 ```
 
 To run the tests, run: 
 
 ```bash
- docker run gymmatch_test
+ docker run final-project-test
 ```
 
 The following command will be executed within the container to run the provided unit tests under `tests/`:  
